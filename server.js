@@ -1,44 +1,41 @@
-import express from 'express';
-import cors from 'cors';
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-const HF_TOKEN = "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";
-
 app.post('/api/chat', async (req, res) => {
   try {
     const { message } = req.body;
 
-    // We use Llama 3 - one of the best free models available
     const response = await fetch(
-      "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct",
+      "https://router.huggingface.co/hf-inference/v1/chat/completions",
       {
         headers: { 
           Authorization: `Bearer ${HF_TOKEN}`,
           "Content-Type": "application/json"
         },
         method: "POST",
-        body: JSON.stringify({ inputs: message }),
+        body: JSON.stringify({ 
+            model: "meta-llama/Llama-3.2-3B-Instruct", // Put model name INSIDE the body
+            messages: [{ role: "user", content: message }],
+            max_tokens: 500
+        }),
       }
     );
 
     const result = await response.json();
     
-    // Hugging Face returns an array; we grab the generated text
-    const text = result[0]?.generated_text || "I'm thinking...";
+    // Check if the API returned an error message inside the JSON
+    if (result.error) {
+        return res.json({ text: `HF Error: ${result.error}`, stations: [] });
+    }
+
+    // New format for the Router API
+    const text = result.choices[0].message.content;
 
     res.json({
       text: text,
       stations: [
-        { name: "Berlin Hauptbahnhof", elevatorStatus: "Operational", notes: "Free API working!" }
+        { name: "Berlin Hauptbahnhof", elevatorStatus: "Operational", notes: "API Connected!" }
       ]
     });
   } catch (error) {
     console.error("HF Error:", error);
-    res.status(500).json({ text: "API limit reached or token invalid." });
+    res.status(500).json({ text: "The server encountered an error. Check terminal." });
   }
 });
-
-app.listen(3001, () => console.log("Hugging Face Backend running on 3001"));
