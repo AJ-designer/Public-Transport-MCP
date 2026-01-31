@@ -15,7 +15,7 @@ mcp = FastMCP("DB Accessibility Server")
 STATION_API = "https://apis.deutschebahn.com/db-api-marketplace/apis/station-data/v2"
 TIMETABLE_API = "https://apis.deutschebahn.com/db-api-marketplace/apis/timetables/v1"
 
-@mcp.tool()
+@mcp.tool() 
 async def search_stations(query: str, limit: int = 10) -> dict:
     """
     Search for train stations in Germany by name or location.

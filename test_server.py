@@ -32,7 +32,7 @@ async def test_server():
     # Test 2: Get station details
     print("\n2️⃣  Testing detailed station info for 'München Hbf'...")
     result = await get_station_details("München Hbf")
-    if result["success"]:
+    if result["success"]: 
         station = result["station"]
         print(f"✅ Station: {station['name']}")
         print(f"   Category: {station['category']}")
