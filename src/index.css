@@ -43,8 +43,8 @@ h1 {
 }
 
 button {
-  height: 4em;
-  margin-left: 23em;
+  height: 2em;
+  margin-left: 29em;
   border-radius: 8px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
@@ -69,6 +69,20 @@ button:focus-visible {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* Big Input Area Styling */
+input[type="text"] {
+  min-height: 5rem;
+  box-sizing: border-box;
+  border-width: 8px !important;
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+}
+
+button[type="button"] {
+  min-height: 5rem;
+  box-sizing: border-box;
 }
 
 @media (prefers-color-scheme: light) {

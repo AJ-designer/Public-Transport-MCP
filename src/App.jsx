@@ -61,11 +61,11 @@ export default function App() {
         </div>
 
         {/* Big Input Area */}
-        <div className="p-4 border-t-4 border-blue-600 bg-white">
-          <div className="flex gap-4">
+        <div className="p-6 border-t-4 border-blue-600 bg-white">
+          <div className="flex gap-4 items-center">
       
             <input 
-              className="flex-1 text-2xl border-4 border-purple-600 rounded-2xl px-15 py-150 text-purple-700 outline-none focus:ring-4 focus:ring-blue-200 placeholder:text-purple-200"
+              className="flex-1 text-2xl border-8 border-purple-600 rounded-2xl px-8 h-20 text-purple-700 outline-none focus:ring-4 focus:ring-blue-200 placeholder:text-purple-200"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
@@ -73,7 +73,7 @@ export default function App() {
             />
             <button 
               onClick={handleSend}
-              className="bg-blue-600 text-white text-2xl font-black px-12 py-6 rounded-2xl hover:bg-purple-600 transition-all active:scale-95"
+              className="bg-blue-600 text-white text-2xl font-black px-12 h-20 rounded-2xl hover:bg-purple-600 transition-all active:scale-95 flex items-center justify-center"
             >
               SEND
             </button>
