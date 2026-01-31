@@ -9,9 +9,12 @@ export default function App() {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollRef.current && messagesContainerRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }, [messages]);
 
   const handleSend = async () => {
@@ -27,20 +30,20 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
+    <div className="h-screen bg-white flex flex-col items-center justify-center p-4 overflow-hidden">
       
       {/* Header */}
-      <header className="mb-6 text-center">
+      <header className="mb-4 text-center w-full">
         <h1 className="text-5xl font-black tracking-tighter text-blue-600">
           GO<span className="text-purple-600 font-light">ACCESS</span>
         </h1>
       </header>
 
       {/* Large Chatbot Box */}
-      <main className="w-full max-w-3xl bg-white border-4 border-blue-600 rounded-[40px] flex flex-col h-[80vh] overflow-hidden shadow-none">
+      <main className="w-full max-w-3xl bg-white border-4 border-blue-600 rounded-[40px] flex flex-col h-[60vh] overflow-hidden shadow-none mx-auto">
         
         {/* Chat Messages Area */}
-        <div className="flex-1 overflow-y-auto p-10 space-y-8">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] text-xl font-bold leading-snug p-6 rounded-3xl ${
@@ -53,12 +56,12 @@ export default function App() {
               </div>
             </div>
           ))}
-          {isLoading && <div className="text-purple-600 font-black animate-pulse text-lg italic">QUERYING BERLIN MCP...</div>}
+          {isLoading && <div className="text-purple-600 font-black animate-pulse text-lg italic text-center">QUERYING BERLIN MCP...</div>}
           <div ref={scrollRef} />
         </div>
 
         {/* Big Input Area */}
-        <div className="p-8 border-t-4 border-blue-600 bg-white">
+        <div className="p-4 border-t-4 border-blue-600 bg-white">
           <div className="flex gap-4">
       
             <input 
