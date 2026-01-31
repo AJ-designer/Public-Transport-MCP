@@ -5,6 +5,7 @@ Run this to test without needing Claude Desktop setup
 
 import asyncio
 import sys
+import logging
 sys.path.insert(0, '/home/claude/db-accessibility-mcp')
 
 from server import search_stations, get_station_details, check_accessibility_route, get_mobility_service_info
@@ -15,7 +16,9 @@ async def test_server():
     print("Testing DB Accessibility MCP Server")
     print("=" * 60)
     
+    logger = logging.getLogger()
     # Test 1: Search for stations
+    logger.warning("warniiiiiiiing")
     print("\n1️⃣  Testing station search for 'Berlin'...")
     result = await search_stations("Berlin", limit=3)
     if result["success"]:

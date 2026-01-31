@@ -5,6 +5,7 @@ Provides tools to check accessibility features for German train stations and con
 
 from mcp.server.fastmcp import FastMCP
 import httpx
+import logging
 from typing import Optional
 
 # Initialize FastMCP server
