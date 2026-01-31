@@ -1,0 +1,17 @@
+/* custom styles for smooth scrolling and scrollbar behavior */
+
+/* Make the chat area scrollable but hide the ugly scrollbar */
+.chat-container {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Optional: Add a subtle animation for when new messages appear */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-fade {
+    animation: fadeIn 0.3s ease-out forwards;
+}
