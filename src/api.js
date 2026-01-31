@@ -1,7 +1,14 @@
-export const sendMessageToRouter = async (msg) => {
-  await new Promise(r => setTimeout(r, 1000)); // Simulate delay
-  return {
-    text: "Here is the closest accessible station found via MCP:",
-    stations: [{ name: "Central Station", distance: "0.2", elevatorStatus: "Working" }]
-  };
+// src/api.js
+export const sendMessageToRouter = async (userMessage) => {
+  try {
+    const response = await fetch("http://localhost:3001/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: userMessage }),
+    });
+
+    return await response.json();
+  } catch (error) {
+    return { text: "Error: Is your server.js running?", stations: [] };
+  }
 };
