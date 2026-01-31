@@ -18,7 +18,6 @@ async def test_server():
     
     logger = logging.getLogger()
     # Test 1: Search for stations
-    logger.warning("warniiiiiiiing")
     print("\n1️⃣  Testing station search for 'Berlin'...")
     result = await search_stations("Berlin", limit=3)
     if result["success"]:
@@ -35,10 +34,10 @@ async def test_server():
     if result["success"]: 
         station = result["station"]
         print(f"✅ Station: {station['name']}")
-        print(f"   Category: {station['category']}")
-        print(f"   Step-free access: {station['has_step_free_access']}")
-        print(f"   Mobility service: {station['has_mobility_service']}")
-        print(f"   WiFi: {station['has_wifi']}")
+        print(f"   EVA Number: {station['eva_number']}")
+        print(f"   Step-free access: {station['step_free_access']}")
+        print(f"   Mobility service: {station['mobility_service']}")
+        print(f"   WiFi: {station['wifi']}")
     else:
         print(f"❌ Error: {result.get('error')}")
     
@@ -46,9 +45,9 @@ async def test_server():
     print("\n3️⃣  Testing route accessibility Berlin → Hamburg...")
     result = await check_accessibility_route("Berlin Hbf", "Hamburg Hbf")
     if result["success"]:
-        print(f"✅ Route accessible: {result['route_accessible']}")
-        print(f"   Departure: {result['departure']['name']} - {result['departure']['step_free_access']}")
-        print(f"   Arrival: {result['arrival']['name']} - {result['arrival']['step_free_access']}")
+        print(f"✅ Route accessible: {result['route_fully_accessible']}")
+        print(f"   Departure: {result['departure']['name']} - {result['departure']['step_free']}")
+        print(f"   Arrival: {result['arrival']['name']} - {result['arrival']['step_free']}")
         print(f"   💡 {result['recommendation']}")
     else:
         print(f"❌ Error: {result.get('error')}")
