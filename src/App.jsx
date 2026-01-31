@@ -62,7 +62,7 @@ export default function App() {
 
         {/* Big Input Area */}
         <div className="p-6 border-t-4 border-blue-600 bg-white">
-          <div className="flex gap-4 items-center">
+          <div className="flex flex-row gap-4 items-center flex-nowrap">
       
             <input 
               className="flex-1 text-2xl border-8 border-purple-600 rounded-2xl px-8 h-20 text-purple-700 outline-none focus:ring-4 focus:ring-blue-200 placeholder:text-purple-200"
@@ -73,7 +73,7 @@ export default function App() {
             />
             <button 
               onClick={handleSend}
-              className="bg-blue-600 text-white text-2xl font-black px-12 h-20 rounded-2xl hover:bg-purple-600 transition-all active:scale-95 flex items-center justify-center"
+              className="bg-blue-600 text-white text-2xl font-black px-12 h-20 rounded-2xl hover:bg-purple-600 transition-all active:scale-95 flex items-center justify-center flex-shrink-0"
             >
               SEND
             </button>

@@ -85,6 +85,13 @@ button[type="button"] {
   box-sizing: border-box;
 }
 
+/* Ensure input and button stay in one row */
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
