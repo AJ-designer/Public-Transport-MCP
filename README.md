@@ -109,6 +109,3 @@ Live BVG data integration is on the roadmap.
 
 The active branch is `frontend`. PRs welcome — especially for live data integrations, additional cities, and accessibility improvements to the UI itself.
 
----
-
-*Built for the people Berlin's transit system was not designed with in mind.*
