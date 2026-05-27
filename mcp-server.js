@@ -1,36 +1,34 @@
-// mcp-server.js
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 const server = new Server({ name: "berlin-transit", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-// MOCK DATA
 const STATIONS = [
-  { name: "Ostbahnhof", elevator: "Working", accessible: true, notes: "Main hall ramp open" },
-  { name: "Alexanderplatz", elevator: "Under Repair", accessible: false, notes: "Use U5 entrance for lift" }
+  { name: "Berlin Hauptbahnhof", elevatorStatus: "Operational", accessible: true,  notes: "Clear access to all levels" },
+  { name: "Alexanderplatz",      elevatorStatus: "Limited",     accessible: false, notes: "U8 elevator out until 4 PM — use U5 entrance for lift" },
+  { name: "Friedrichstraße",     elevatorStatus: "Operational", accessible: true,  notes: "Step-free S-Bahn and Regional transition available" },
+  { name: "Zoologischer Garten", elevatorStatus: "Operational", accessible: true,  notes: "Large elevators for U2, U9, and all S-Bahn lines" },
+  { name: "Ostbahnhof",          elevatorStatus: "Operational", accessible: true,  notes: "Main hall ramp open" },
 ];
 
-// 1. Tell the LLM what tools are available
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [{
     name: "get_station_accessibility",
-    description: "Check if a Berlin station is wheelchair accessible",
+    description: "Check if a Berlin BVG station is wheelchair accessible and get elevator status",
     inputSchema: {
       type: "object",
-      properties: { stationName: { type: "string" } },
+      properties: { stationName: { type: "string", description: "Name or partial name of the Berlin station" } },
       required: ["stationName"]
     }
   }]
 }));
 
-// 2. Handle the logic when the LLM calls the tool
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { stationName } = request.params.arguments;
   const station = STATIONS.find(s => s.name.toLowerCase().includes(stationName.toLowerCase()));
-  
   return {
-    content: [{ type: "text", text: JSON.stringify(station || { error: "Station not found" }) }]
+    content: [{ type: "text", text: JSON.stringify(station ?? { error: "Station not found" }) }]
   };
 });
 

@@ -1,96 +1,201 @@
 # GoAccess — Berlin Transit Accessibility Intelligence Platform
 
-> **Making Berlin's public transit navigable for everyone — powered by a multi-model AI pipeline built on open standards.**
+> Making Berlin's public transit navigable for everyone — powered by a multi-model AI pipeline built on open standards.
 
-GoAccess is an open-source conversational accessibility assistant for Berlin's public transit network. It lets any user — wheelchair users, parents with strollers, travelers with mobility needs — instantly query real-time elevator status, step-free routes, and platform accessibility across the entire BVG network through a natural language interface. No forms. No maps to parse. Just ask.
-
-The frontend branch is the active, production-ready branch of this repository.
+GoAccess is a conversational accessibility assistant for Berlin's public transit network. Wheelchair users, parents with strollers, and travelers with mobility needs can instantly query elevator status, step-free routes, and platform accessibility across BVG stations through a natural language chat interface — no forms, no maps to parse, no PDFs to dig through.
 
 ---
 
-## The Problem
+## Demo
 
-Berlin's transit accessibility data exists — but it's buried. The BVG publishes elevator outage notices, but finding the relevant info for *your* station, *your* line, *your* platform requires navigating fragmented websites, PDFs, and apps that were never designed for people who need that information most. GoAccess collapses that friction into a single conversation.
-
----
-
-## How It Works: A Multi-Model AI Pipeline
-
-GoAccess is not a wrapper around a single API. It is a **provider-agnostic AI pipeline** — meaning the intelligence layer can run on any major LLM provider without changing application logic. This is the core architectural decision that makes the project genuinely extensible and future-proof.
-
-Under the hood, three separate AI providers are integrated in parallel:
-
-**Anthropic Claude** sits at the center of the reasoning layer. Claude is responsible for understanding the user's natural language query, deciding which tool to invoke, interpreting the structured result returned by the MCP server, and composing a human-readable response. Claude's tool-use capability — its ability to call external functions mid-conversation and reason about the results — is what makes the whole pipeline coherent rather than just a string of API calls stitched together. The model doesn't just retrieve data; it understands context, handles ambiguity ("the one near Alexanderplatz"), and produces responses that are genuinely useful rather than raw JSON.
-
-**Groq** (running Llama 3) provides a high-speed inference alternative for latency-sensitive queries. Where Claude handles nuanced multi-turn reasoning, Groq handles fast, single-turn lookups with sub-second response times. Both are live in the codebase under the same interface contract — swapping between them requires changing one line.
-
-**Google Gemini** is integrated as a third provider, enabling multimodal inputs in future iterations — for example, letting a user photograph a station entrance and ask whether it's accessible.
-
-All three providers are abstracted behind a shared Express router (`router.js`), meaning the frontend never knows or cares which model is responding. This is intentional: the goal is resilience. If one provider's API goes down or raises prices, the system keeps running.
+| Ask a question | Get structured accessibility data |
+|---|---|
+| "Is Alexanderplatz accessible?" | Elevator status + live notes per station |
+| "Can I use Zoo with a wheelchair?" | Full platform accessibility breakdown |
+| "What's the situation at Hauptbahnhof?" | Operational status + level-by-level notes |
 
 ---
 
-## The MCP Layer: Why This Matters
+## Architecture
 
-The transit data itself is served through an **MCP (Model Context Protocol) server** — an open standard for connecting AI models to external tools and data sources. This is the architectural detail that separates GoAccess from a toy project.
+GoAccess is a three-layer full-stack application:
 
-Rather than hardcoding transit lookups into the LLM prompt or calling a REST endpoint directly, GoAccess exposes a typed, schema-validated tool called `get_station_accessibility` through the MCP protocol. When Claude (or any connected model) needs station data, it *calls this tool the same way a function call works in code* — passing structured arguments, receiving structured results, and reasoning about those results before responding.
-
-This means:
-
-- **Any MCP-compatible AI client** can connect to the GoAccess tool server and gain transit awareness. The server is not tied to this frontend.
-- **The data layer is independently upgradeable.** Swap mock data for a live BVG API feed, a database, or a third-party accessibility service — the AI layer doesn't need to change.
-- **The protocol is open.** MCP is not a proprietary integration. Any model or agent that speaks MCP — Claude, GPT-4, local Ollama models, future systems we haven't seen yet — can consume GoAccess's tools.
-
-The MCP server runs as a subprocess spawned by the Express router, communicating over stdio via `StdioClientTransport`. This keeps it lightweight and portable — no separate daemon to manage, no network overhead between the router and the tool server.
-
----
-
-## Why It's Open Source (and What That Actually Means Here)
-
-GoAccess is open source not as a legal formality but as a structural commitment. Every layer of the stack is built on open standards and permissively licensed dependencies:
-
-- **MCP** is an open protocol. The tool definitions in this repo can be consumed by any conforming client.
-- **The AI provider abstraction** means no vendor lock-in. The project does not depend on any single company's continued goodwill or pricing.
-- **The frontend** is plain React with no proprietary component libraries.
-- **The data model** is schema-first (zod-validated) and fully documented — anyone can extend the station database or replace it with a live data feed.
-
-Anyone can fork this, point it at a different city's transit API, swap in a different LLM, and have a working accessibility assistant in hours. That is the point.
-
----
-
-## Getting Started
-
-```bash
-npm install
+```
+┌─────────────────────────────────────────┐
+│           React Frontend (Vite)         │
+│    Chat UI  →  src/App.jsx              │
+│    Station Cards  →  src/StationCard.jsx│
+└──────────────────┬──────────────────────┘
+                   │ POST /api/chat
+                   ▼
+┌─────────────────────────────────────────┐
+│         Express Router (port 3001)      │
+│    router.js  — LLM orchestration       │
+│    server.js  — HuggingFace backend     │
+└──────────────────┬──────────────────────┘
+                   │ stdio (MCP protocol)
+                   ▼
+┌─────────────────────────────────────────┐
+│         MCP Server (mcp-server.js)      │
+│    Tool: get_station_accessibility      │
+│    Transport: StdioServerTransport      │
+└─────────────────────────────────────────┘
 ```
 
-Run the Vite frontend:
+**Data flow:**
+1. User types a question in the React chat interface
+2. Frontend sends `POST /api/chat` to the Express router
+3. Router calls the MCP server's `get_station_accessibility` tool via stdio transport
+4. MCP server returns structured station JSON
+5. Router returns `{ text, stations[] }` to the frontend
+6. Frontend renders the response and station accessibility cards
 
-```bash
-npm run dev
+---
+
+## The MCP Layer
+
+The transit data is served through an **MCP (Model Context Protocol) server** — an open standard for connecting AI models to external tools and data sources.
+
+Rather than hardcoding transit lookups into a prompt or calling a REST endpoint directly, GoAccess exposes a typed, schema-validated tool called `get_station_accessibility` through the MCP protocol. When an LLM needs station data, it calls this tool like a function — passing structured arguments and receiving structured results — then reasons about those results before composing a response.
+
+```js
+// Any MCP-compatible client can call this tool
+await client.callTool({
+  name: "get_station_accessibility",
+  arguments: { stationName: "Ostbahnhof" }
+});
+// Returns: { name, elevator, accessible, notes }
 ```
 
-Run the Express + MCP backend (port 3001):
+**Why this matters:**
+- Any MCP-compatible AI client can connect to the GoAccess tool server — it is not tied to this frontend
+- The data layer is independently upgradeable: swap mock data for a live BVG API feed without touching the AI layer
+- The protocol is open: Claude, GPT-4, local Ollama models, and any future MCP-compatible system can consume GoAccess tools
 
-```bash
-node router.js
-```
+The MCP server runs as a subprocess spawned by the Express router over stdio (`StdioClientTransport`). No separate daemon, no network overhead between the router and tool server.
 
-The MCP server is spawned automatically as a subprocess — no separate startup needed.
+---
+
+## AI Provider Pipeline
+
+GoAccess is **provider-agnostic** — the intelligence layer can run on any major LLM without changing application logic.
+
+| Provider | Role | File |
+|---|---|---|
+| **Anthropic Claude** | Multi-turn reasoning, tool use, ambiguity resolution | `router.js` |
+| **Groq (Llama 3)** | High-speed single-turn lookups, sub-second inference | `router.js` |
+| **Google Gemini** | Multimodal queries (photograph a station, ask if accessible) | `router.js` |
+| **HuggingFace (Llama 3.2)** | Alternative inference backend | `server.js` |
+
+All providers share the same response contract: `{ text: string, stations: array }`. Swapping providers requires changing one line.
+
+---
+
+## Tech Stack
+
+**Frontend**
+- React 19.2 — UI library
+- Vite 7.2 — dev server and bundler (HMR enabled)
+- Tailwind CSS — utility classes for styling
+- Lucide React — icon library
+
+**Backend**
+- Express 5.2 — Node.js web framework
+- CORS — cross-origin request handling
+- `@modelcontextprotocol/sdk` 1.25 — official MCP SDK
+
+**AI/LLM SDKs**
+- `@google/generative-ai` — Google Gemini
+- `groq-sdk` — Groq
+- `openai` — OpenAI-compatible endpoints
+
+**Dev Tools**
+- ESLint 9 (flat config) with React hooks/refresh plugins
+- dotenv — environment variable management
 
 ---
 
 ## Currently Supported Stations
 
-| Station | Elevator Status | Notes |
-|---|---|---|
-| Berlin Hauptbahnhof |  Operational | Clear access to all levels |
-| Alexanderplatz |  Limited | U8 elevator out until 4 PM |
-| Friedrichstraße |  Operational | Step-free S-Bahn/Regional transition |
-| Zoologischer Garten |  Operational | Large elevators, all lines |
+| Station | Elevator | Accessible | Notes |
+|---|---|---|---|
+| Berlin Hauptbahnhof | Operational | Yes | Clear access to all levels |
+| Alexanderplatz | Limited | No | U8 elevator out until 4 PM; use U5 entrance |
+| Friedrichstraße | Operational | Yes | Step-free S-Bahn/Regional transition |
+| Zoologischer Garten | Operational | Yes | Large elevators for U2, U9, all S-Bahn lines |
+| Ostbahnhof | Working | Yes | Main hall ramp open |
 
-Live BVG data integration is on the roadmap.
+> Live BVG API integration is on the roadmap. Current data is mocked for demonstration.
+
+---
+
+## Project Structure
+
+```
+Public-Transport-MCP/
+├── mcp-server.js          # MCP server — defines get_station_accessibility tool
+├── router.js              # Express router — LLM orchestration + MCP client
+├── server.js              # Alternative backend — HuggingFace Inference API
+├── main.jsx               # React DOM entry point
+├── index.html             # Vite HTML entry point
+├── vite.config.js         # Vite config (React plugin)
+├── eslint.config.js       # ESLint flat config
+├── package.json           # Dependencies and scripts
+└── src/
+    ├── App.jsx            # Main chat interface component
+    ├── StationCard.jsx    # Station accessibility card component
+    ├── api.js             # HTTP client (sendMessageToRouter)
+    ├── main.jsx           # React root renderer
+    ├── App.css            # App-level styles
+    └── index.css          # Global styles and resets
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm 9+
+
+### Installation
+
+```bash
+git clone https://github.com/AJ-designer/Public-Transport-MCP.git
+cd Public-Transport-MCP
+npm install
+```
+
+### Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+# Required for HuggingFace backend (server.js)
+HF_TOKEN=your_huggingface_token
+
+# Optional — for other providers
+GROQ_API_KEY=your_groq_key
+GOOGLE_AI_KEY=your_google_ai_key
+ANTHROPIC_API_KEY=your_anthropic_key
+```
+
+### Running the App
+
+**Terminal 1 — Frontend (Vite dev server):**
+```bash
+npm run dev
+```
+Opens at `http://localhost:5173`
+
+**Terminal 2 — Backend (Express + MCP server):**
+```bash
+node router.js
+```
+API available at `http://localhost:3001`
+
+The MCP server spawns automatically as a subprocess of the router — no separate startup needed.
 
 ---
 
@@ -99,13 +204,46 @@ Live BVG data integration is on the roadmap.
 | Command | Description |
 |---|---|
 | `npm run dev` | Start Vite dev server with HMR |
-| `npm run build` | Production build |
-| `npm run preview` | Preview production build |
-| `npm run lint` | Run ESLint |
+| `npm run build` | Production build to `dist/` |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint across the codebase |
+
+---
+
+## UI Design
+
+The interface is intentionally bold and high-contrast — accessibility-first design for the tool's target users:
+
+- **Large 24–48px font sizes** across chat messages
+- **Thick 4–8px borders** with high-contrast blue/purple palette
+- **25vh input area** with large touch target for the SEND button
+- **Rounded 32px corners** throughout for a friendly, legible layout
+
+---
+
+## Roadmap
+
+- [ ] Live BVG API integration (real-time elevator outage data)
+- [ ] Multi-turn reasoning with Claude tool use
+- [ ] Multimodal inputs via Gemini (photograph a station, ask if accessible)
+- [ ] Additional cities beyond Berlin
+- [ ] Keyboard navigation and screen reader support
+- [ ] Station search autocomplete
 
 ---
 
 ## Contributing
 
-The active branch is `frontend`. PRs welcome — especially for live data integrations, additional cities, and accessibility improvements to the UI itself.
+The active branch is `frontend`. PRs are welcome — especially for:
 
+- Live BVG/transit API integrations
+- Additional city support
+- Accessibility improvements to the UI itself
+- New LLM provider integrations
+
+```bash
+git checkout -b feature/your-feature
+# make your changes
+git push origin feature/your-feature
+# open a PR against frontend
+```
